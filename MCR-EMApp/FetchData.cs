@@ -113,8 +113,8 @@ namespace MCR_EMApp
                         foreach (var address in _memAddress)
                         {
                             //Constructing request header 
-                            byte[] requestwithoutcrc = new byte[6];
-                            byte[] requestwithcrc = new byte[8];
+                            Byte[] requestwithoutcrc = new Byte[6];
+                            Byte[] requestwithcrc = new Byte[8];
                             //first byte is the id of the meter 
                             //in this scenario j variable holds meter id                            
                             requestwithoutcrc[0] = Convert.ToByte(j);
@@ -123,32 +123,34 @@ namespace MCR_EMApp
                             requestwithoutcrc[1] = 4;
                             //The consecutive two bytes stores the register start address
                             //address[0] holds the register start address in int we are converting this to 16bit binary using convert2bitarray function and this is further converted to two 8 bit integers
-                            int[] registerstartaddress = convert2int8(convert2bitarray(address[0], 16), 2);
-                            for ( int k=0;k<registerstartaddress.Length;k++ )
+                            Byte[] registerstartaddress = convert2int8(convert2bitarray(address[0], 16), 2);
+                            for ( int k=registerstartaddress.Length-1,l=0;k>=0 ;k--,l++ )
                             {
-                                requestwithoutcrc[k+2] = Convert.ToByte(registerstartaddress[k]);
+                                requestwithoutcrc[l+2] = registerstartaddress[k];
                             }
                             //The consecutive two bytes stores the registers length
                             //address[1] holds the value ie., no registers needed from starting address this is also converted to two 8 bit integers
                             //response length variable holds no of bytes the output response will be
                             int responselength = address[1];
-                            byte[] response = new byte[responselength];
-                            int[] length = convert2int8(convert2bitarray(address[1], 16), 2);
-                            for (int k = 0; k < registerstartaddress.Length; k++)
+                            Byte[] response = new byte[responselength*2+5];
+                            Byte[] length = convert2int8(convert2bitarray(address[1], 16), 2);
+                            for (int k = length.Length-1, l = 0; k >= 0; k--, l++)
                             {
-                                requestwithoutcrc[k + 4] = Convert.ToByte(registerstartaddress[k]);
+                                requestwithoutcrc[l + 4] = length[k];
                             }
                             //Till this point we have constructed the modbus request modbus request as crc is little indian in modbus
-                            //The loop 
-                            int[] crcbytes = calculatecrc(requestwithoutcrc);
-                            requestwithcrc.CopyTo(requestwithoutcrc, 0);
-                            for (int k = crcbytes.Length,l=0;k>=0 ; k--,l++)
+                            //The loop will calculate crc and appends crc bytes in little endian mode
+                            byte[] crcbytes = calculatecrc(requestwithoutcrc);
+                            requestwithoutcrc.CopyTo(requestwithcrc, 0);
+                            for (int k = 0;k<crcbytes.Length ; k++)
                             {
-                                requestwithcrc[l + 6] = Convert.ToByte(crcbytes[l]);
+                                requestwithcrc[k + 6] = crcbytes[k];
                             }
+                            _comport.Open();
                             _comport.Write(requestwithcrc.ToString());
                             _comport.Read(response, 0, responselength);
-                            _currentReadings.Add(data1[1]);
+                            _comport.Close();
+                            //_currentReadings.Add(data1[1]);
                         }
                         var model = new MeterModel()
                         {
@@ -175,20 +177,16 @@ namespace MCR_EMApp
 
         }
 
-        private int[] convert2int8(BitArray bitArray, int v)
+        private Byte[] convert2int8(BitArray bitArray, int v)
         {
-            int[] array = new int[v];
-            int pivotpoint = bitArray.Length / v;
-            for (int i = 0; i < v; i++) {
-                int[] j = new int[1];
-                bitArray.CopyTo(j, i*pivotpoint);
-                array[i] = j[0];
-            }
+            Byte[] array = new Byte[v];            
+            bitArray.CopyTo(array, 0);
             return array;
         }
 
-        private int[] calculatecrc(byte[] data)
+        private Byte[] calculatecrc(byte[] data)
         {
+            string tbOut = "";
             BitArray crc = convert2bitarray(65535, 16);
             BitArray constMultiple = convert2bitarray(40961, 16);
             foreach (byte by in data)
@@ -213,11 +211,11 @@ namespace MCR_EMApp
                         crc = convert2bitarray(intcrc, 16);
                         crc = crc.Xor(constMultiple);
                     }
-                    tbOut.Text += j.ToString() + "st xor of byte results " + ConvertToInt16(crc).ToString("X") + System.Environment.NewLine;
+                    tbOut += j.ToString() + "st xor of byte results " + ConvertToInt16(crc).ToString("X") + System.Environment.NewLine;
 
                 }
             }
-            int[] crcdata = convert2int8(crc, 2);
+            Byte[] crcdata = convert2int8(crc, 2);
             return crcdata;
         }
 
