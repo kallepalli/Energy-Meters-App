@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
+using System.Threading;
 using Newtonsoft.Json.Linq;
+using Excel = Microsoft.Office.Interop.Excel;
 
 namespace MCR_EMApp
 {
@@ -35,6 +37,8 @@ namespace MCR_EMApp
         private void loadSerialPortDetails()
         {
             _comport.BaudRate = int.Parse(_jObject["SerialPort"]["BaudRate"].ToString());
+            _comport.ReadTimeout = 1000;
+            _comport.WriteTimeout = 1000;
             int parity = int.Parse(_jObject["SerialPort"]["Parity"].ToString());
             if (parity == 2)
             {
@@ -83,7 +87,15 @@ namespace MCR_EMApp
             _MVAR = float.Parse(_jObject["MeterRatios"][MeterNo.ToString()]["MVAR"].ToString());
             _KWH = float.Parse(_jObject["MeterRatios"][MeterNo.ToString()]["KWH"].ToString());
         }
+        private Excel.Worksheet FindSheet(Excel.Workbook workbook, string sheet_name)
+        {
+            foreach (Excel.Worksheet sheet in workbook.Sheets)
+            {
+                if (sheet.Name == sheet_name) return sheet;
+            }
 
+            return null;
+        }
         public void GetDataFromMeters()
         {
 
@@ -93,6 +105,22 @@ namespace MCR_EMApp
                 loadSerialPortDetails();
                 //Get No of type of meters
                 loadNoOfDifferentMeterTypes();
+                //create new excel application 
+                Excel.Application excel_app = new Excel.ApplicationClass();
+                excel_app.Visible = false;
+                string newfile = System.IO.Directory.GetCurrentDirectory()+"//"+ DateTime.Now.ToString("ddMMyyyy_HHmm") + ".xlsx";
+                File.Copy(".//Template.xlsx", newfile);
+                Excel.Workbook workbook = excel_app.Workbooks.Open(newfile,Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing, Type.Missing, Type.Missing,       Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing);
+                string sheet_name = "Sheet1";
+                Excel.Worksheet sheet = FindSheet(workbook, sheet_name);
+                if (sheet == null)
+                {
+                    // Add the worksheet at the end.
+                    sheet = (Excel.Worksheet)workbook.Sheets.Add(
+                        Type.Missing, workbook.Sheets[workbook.Sheets.Count],
+                        1, Excel.XlSheetType.xlWorksheet);
+                    sheet.Name = "Sheet1";
+                }
                 //Get Meter Details from different type of meters
                 for (int i = 1; i <= _meterTypes; i++)
                 {
@@ -104,12 +132,14 @@ namespace MCR_EMApp
                     //Load Memory address of modbus registers for Ir,Iy,Ib,Vr,Vy,Vb,KWH,MVAR,MW
                     loadMemAddress();
                     //Load Meter Ratio of individual meter and fetch data from meters
+                    StreamWriter file = new StreamWriter("output.txt");
                     for (int j = _start; j <= _end; j++)
                     {
                         //Load meter Ratios
-                        LoadMeterRatios(j);
+                       // LoadMeterRatios(j);
                         //Get data from meters
-                                                
+                        file.WriteLine("Meter ID: " + j.ToString());
+                        file.WriteLine(System.Environment.NewLine);
                         foreach (var address in _memAddress)
                         {
                             //Constructing request header 
@@ -133,6 +163,7 @@ namespace MCR_EMApp
                             //response length variable holds no of bytes the output response will be
                             int responselength = address[1];
                             Byte[] response = new byte[responselength*2+5];
+                            Byte[] responsedata=new byte[responselength * 2 ];
                             Byte[] length = convert2int8(convert2bitarray(address[1], 16), 2);
                             for (int k = length.Length-1, l = 0; k >= 0; k--, l++)
                             {
@@ -146,29 +177,41 @@ namespace MCR_EMApp
                             {
                                 requestwithcrc[k + 6] = crcbytes[k];
                             }
+
                             _comport.Open();
-                            _comport.Write(requestwithcrc.ToString());
-                            _comport.Read(response, 0, responselength);
+                            _comport.DiscardInBuffer();                           
+                            _comport.Write(requestwithcrc,0,requestwithcrc.Length);
+                            Thread.Sleep(1000);
+                            if (_comport.BytesToRead == response.Length)
+                            {
+                                _comport.Read(response, 0, response.Length);
+                            }
                             _comport.Close();
-                            //_currentReadings.Add(data1[1]);
+
+                            file.Write("Request: ");
+                            foreach (byte byterequestdata in requestwithcrc)
+                            {
+                                file.Write(Convert.ToInt16(byterequestdata).ToString() + " ");
+                            }
+                            file.WriteLine(System.Environment.NewLine);
+
+
+                            file.Write("Response: ");
+                            foreach (byte byteresponsedata in response)
+                            {
+                                file.Write(Convert.ToInt16(byteresponsedata).ToString() + " ");
+                            }
+
+                            file.WriteLine(System.Environment.NewLine);
+                            Array.Copy(response, 3, responsedata, 0, 4);
+                            Array.Reverse(responsedata);
+                            sheet.Cells[j + 2, address[2]] = BitConverter.ToInt32(responsedata, 0).ToString();
                         }
-                        var model = new MeterModel()
-                        {
-                            MeterID=j,
-                            IB   = _currentReadings[0],
-                            IR   = _currentReadings[1],
-                            IY   = _currentReadings[2],
-                            KWH  = _currentReadings[3],
-                            MVAR = _currentReadings[4],
-                            MW   = _currentReadings[5],
-                            VB   = _currentReadings[6],
-                            VR   = _currentReadings[7],
-                            VY   = _currentReadings[8],
-                            Timestamp = DateTime.Now
-                        };
-                        _context.MeterModel.Add(model);
-                        _context.SaveChanges();
+ 
                     }
+                    file.Close();
+                    workbook.Close(true, Type.Missing, Type.Missing);
+                    excel_app.Quit();
                 }
             }
             catch (Exception ex)
