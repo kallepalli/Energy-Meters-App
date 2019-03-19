@@ -23,7 +23,7 @@ namespace MCR_EMApp
         private int _ptRatio, _ctRatio;
         private float _MW, _MVAR, _KWH;
         private SerialPort _comport;
-     
+        private List<string> _tags = new List<string>();
         public FetchData(string pathToConfiguration, SerialPort comport)
         {
             _jsonData = File.ReadAllText(pathToConfiguration);
@@ -67,25 +67,25 @@ namespace MCR_EMApp
             _start = int.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["SlaveIdStart"].ToString());
             _end = int.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["SlaveIdEnd"].ToString());
         }
+        private void loadTags()
+        {
+            foreach(var tag in _jObject["Tags"])
+            {
+                _tags.Add(tag.ToString());
+            }
+        }
         private void loadMemAddress()
         {
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["IB"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["IR"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["IY"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["KWH"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["MVAR"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["MW"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["VB"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
             _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["VR"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
             _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["VY"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-        }
-        private void LoadMeterRatios(int MeterNo)
-        {
-            _ptRatio = int.Parse(_jObject["MeterRatios"][MeterNo.ToString()]["PT"].ToString());
-            _ctRatio = int.Parse(_jObject["MeterRatios"][MeterNo.ToString()]["CT"].ToString());
-            _MW = float.Parse(_jObject["MeterRatios"][MeterNo.ToString()]["MW"].ToString());
-            _MVAR = float.Parse(_jObject["MeterRatios"][MeterNo.ToString()]["MVAR"].ToString());
-            _KWH = float.Parse(_jObject["MeterRatios"][MeterNo.ToString()]["KWH"].ToString());
+            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["VB"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
+            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["IR"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
+            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["IY"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
+            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["IB"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
+            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["MW"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
+            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["MVAR"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
+            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["KWH"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
+
         }
         private Excel.Worksheet FindSheet(Excel.Workbook workbook, string sheet_name)
         {
@@ -96,11 +96,13 @@ namespace MCR_EMApp
 
             return null;
         }
-        public void GetDataFromMeters()
+        public void GetDataFromMeters(Form1 frm)
         {
 
             try
             {
+                //Load tags
+                loadTags();
                 //Load Serial port data
                 loadSerialPortDetails();
                 //Get No of type of meters
@@ -108,7 +110,7 @@ namespace MCR_EMApp
                 //create new excel application 
                 Excel.Application excel_app = new Excel.ApplicationClass();
                 excel_app.Visible = false;
-                string newfile = System.IO.Directory.GetCurrentDirectory()+"//"+ DateTime.Now.ToString("ddMMyyyy_HHmm") + ".xlsx";
+                string newfile = System.IO.Directory.GetCurrentDirectory()+"\\"+ DateTime.Now.ToString("ddMMyyyy_HHmm") + ".xlsx";
                 File.Copy(".//Template.xlsx", newfile);
                 Excel.Workbook workbook = excel_app.Workbooks.Open(newfile,Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing, Type.Missing, Type.Missing,       Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing);
                 string sheet_name = "Sheet1";
@@ -135,13 +137,19 @@ namespace MCR_EMApp
                     StreamWriter file = new StreamWriter("output.txt");
                     for (int j = _start; j <= _end; j++)
                     {
+                        //Update UI regarding meter      
+                        frm.lblMeterNo.Text = "Currently reading meter no "+j.ToString();
                         //Load meter Ratios
                        // LoadMeterRatios(j);
                         //Get data from meters
                         file.WriteLine("Meter ID: " + j.ToString());
                         file.WriteLine(System.Environment.NewLine);
+                        int m = 0;
                         foreach (var address in _memAddress)
                         {
+                            //Updating UI regarding Tag
+                            frm.lblTag.Text = "Currently reading Tag " + _tags[m].ToString();
+                            m++;
                             //Constructing request header 
                             Byte[] requestwithoutcrc = new Byte[6];
                             Byte[] requestwithcrc = new Byte[8];
@@ -205,6 +213,7 @@ namespace MCR_EMApp
                             file.WriteLine(System.Environment.NewLine);
                             Array.Copy(response, 3, responsedata, 0, 4);
                             Array.Reverse(responsedata);
+                            frm.lblValue.Text=_tags[m-1].ToString()+" : "+ BitConverter.ToInt32(responsedata, 0).ToString();
                             sheet.Cells[j + 2, address[2]] = BitConverter.ToInt32(responsedata, 0).ToString();
                         }
  
@@ -216,6 +225,7 @@ namespace MCR_EMApp
             }
             catch (Exception ex)
             {
+                throw ex;
             }
 
         }

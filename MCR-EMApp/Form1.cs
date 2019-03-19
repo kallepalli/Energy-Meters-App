@@ -22,8 +22,15 @@ namespace MCR_EMApp
 
         private void btnFetchData_Click(object sender, EventArgs e)
         {
-            FetchData fd = new FetchData(".//Settings.json", serialPort1);
-            fd.GetDataFromMeters();
+            try
+            {
+                FetchData fd = new FetchData(".//Settings.json", serialPort1);
+                fd.GetDataFromMeters(this);
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error");
+            }
         }
     }
 }
