@@ -12,18 +12,16 @@ namespace MCR_EMApp
 {
     class FetchData
     {
-        private int _currentMeterType, _start, _end, _meterTypes;
+        private int _currentMeterType, _start, _end, _meterTypes,_scantime;
         private string _modelNo, _jsonData;
         private JArray _jarrayReader;
         private JObject _jObject;
         private List<ushort> _currentReadings = new List<ushort>();
         private AppDBContext _context;
         //private List<ushort> _previousReadings = new List<ushort>();
-        private List<ushort[]> _memAddress = new List<ushort[]>();
-        private int _ptRatio, _ctRatio;
-        private float _MW, _MVAR, _KWH;
+        private List<ushort[]> _memAddress;
         private SerialPort _comport;
-        private List<string> _tags = new List<string>();
+        private List<string> _tags;
         public FetchData(string pathToConfiguration, SerialPort comport)
         {
             _jsonData = File.ReadAllText(pathToConfiguration);
@@ -36,9 +34,11 @@ namespace MCR_EMApp
         //Getdata data from settings.json file
         private void loadSerialPortDetails()
         {
+            _comport.PortName = _jObject["SerialPort"]["PortName"].ToString();
             _comport.BaudRate = int.Parse(_jObject["SerialPort"]["BaudRate"].ToString());
-            _comport.ReadTimeout = 1000;
-            _comport.WriteTimeout = 1000;
+            _scantime= int.Parse(_jObject["SerialPort"]["ScanTime"].ToString());
+            _comport.ReadTimeout = _scantime;
+            _comport.WriteTimeout =_scantime;
             int parity = int.Parse(_jObject["SerialPort"]["Parity"].ToString());
             if (parity == 2)
             {
@@ -67,25 +67,18 @@ namespace MCR_EMApp
             _start = int.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["SlaveIdStart"].ToString());
             _end = int.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["SlaveIdEnd"].ToString());
         }
-        private void loadTags()
-        {
-            foreach(var tag in _jObject["Tags"])
-            {
-                _tags.Add(tag.ToString());
-            }
-        }
+
         private void loadMemAddress()
         {
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["VR"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["VY"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["VB"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["IR"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["IY"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["IB"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["MW"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["MVAR"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-            _memAddress.Add(JArray.Parse(_jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"]["KWH"].ToString()).Select(s => ushort.Parse(s.ToString())).ToArray());
-
+            _memAddress = new List<ushort[]>();
+            _tags = new List<string>();
+            foreach (var token in _jObject["MeterDetails"][_currentMeterType.ToString()]["MemoryMap"].ToList<JToken>())
+            {
+                JProperty jProperty = token.ToObject<JProperty>();
+                string propertyName = jProperty.Name;
+                _tags.Add(propertyName);
+                _memAddress.Add(JArray.Parse(jProperty.Value.ToString()).Select(s=>ushort.Parse(s.ToString())).ToArray());
+            }
         }
         private Excel.Worksheet FindSheet(Excel.Workbook workbook, string sheet_name)
         {
@@ -102,7 +95,7 @@ namespace MCR_EMApp
             try
             {
                 //Load tags
-                loadTags();
+                //loadTags();
                 //Load Serial port data
                 loadSerialPortDetails();
                 //Get No of type of meters
@@ -110,19 +103,10 @@ namespace MCR_EMApp
                 //create new excel application 
                 Excel.Application excel_app = new Excel.ApplicationClass();
                 excel_app.Visible = false;
-                string newfile = System.IO.Directory.GetCurrentDirectory()+"\\"+ DateTime.Now.ToString("ddMMyyyy_HHmm") + ".xlsx";
-                File.Copy(".//Template.xlsx", newfile);
-                Excel.Workbook workbook = excel_app.Workbooks.Open(newfile,Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing, Type.Missing, Type.Missing,       Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing);
-                string sheet_name = "Sheet1";
-                Excel.Worksheet sheet = FindSheet(workbook, sheet_name);
-                if (sheet == null)
-                {
-                    // Add the worksheet at the end.
-                    sheet = (Excel.Worksheet)workbook.Sheets.Add(
-                        Type.Missing, workbook.Sheets[workbook.Sheets.Count],
-                        1, Excel.XlSheetType.xlWorksheet);
-                    sheet.Name = "Sheet1";
-                }
+                StreamWriter file = new StreamWriter("output.txt");
+                string newfile = System.IO.Directory.GetCurrentDirectory()+"\\Template.xlsx";
+                //File.Copy(".//Template.xlsx", newfile);
+                Excel.Workbook workbook = excel_app.Workbooks.Open(newfile, Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing, Type.Missing, Type.Missing,       Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing);
                 //Get Meter Details from different type of meters
                 for (int i = 1; i <= _meterTypes; i++)
                 {
@@ -134,9 +118,20 @@ namespace MCR_EMApp
                     //Load Memory address of modbus registers for Ir,Iy,Ib,Vr,Vy,Vb,KWH,MVAR,MW
                     loadMemAddress();
                     //Load Meter Ratio of individual meter and fetch data from meters
-                    StreamWriter file = new StreamWriter("output.txt");
                     for (int j = _start; j <= _end; j++)
                     {
+                        //Load sheet
+                        string sheet_name = j.ToString();
+                        Excel.Worksheet sheet = FindSheet(workbook, sheet_name);
+                        if (sheet == null)
+                        {
+                            // Add the worksheet at the end.
+                            sheet = (Excel.Worksheet)workbook.Sheets.Add(
+                                Type.Missing, workbook.Sheets[workbook.Sheets.Count],
+                                1, Excel.XlSheetType.xlWorksheet);
+                            sheet.Name = "Sheet1";
+                        }
+
                         //Update UI regarding meter      
                         frm.lblMeterNo.Text = "Currently reading meter no "+j.ToString();
                         //Load meter Ratios
@@ -145,6 +140,11 @@ namespace MCR_EMApp
                         file.WriteLine("Meter ID: " + j.ToString());
                         file.WriteLine(System.Environment.NewLine);
                         int m = 0;
+                        Excel.Range xlRange = (Excel.Range)sheet.Cells[sheet.Rows.Count, 1];
+                        long lastRow = (long)xlRange.get_End(Excel.XlDirection.xlUp).Row;
+                        long newRow = lastRow + 1;
+                        sheet.Cells[newRow, 1] = DateTime.Now.ToString("dd-MMM-yyyy");
+                        sheet.Cells[newRow, 2] = DateTime.Now.ToString("HH:mm");
                         foreach (var address in _memAddress)
                         {
                             //Updating UI regarding Tag
@@ -189,7 +189,7 @@ namespace MCR_EMApp
                             _comport.Open();
                             _comport.DiscardInBuffer();                           
                             _comport.Write(requestwithcrc,0,requestwithcrc.Length);
-                            Thread.Sleep(1000);
+                            Thread.Sleep(500);
                             if (_comport.BytesToRead == response.Length)
                             {
                                 _comport.Read(response, 0, response.Length);
@@ -214,14 +214,14 @@ namespace MCR_EMApp
                             Array.Copy(response, 3, responsedata, 0, 4);
                             Array.Reverse(responsedata);
                             frm.lblValue.Text=_tags[m-1].ToString()+" : "+ BitConverter.ToInt32(responsedata, 0).ToString();
-                            sheet.Cells[j + 2, address[2]] = BitConverter.ToInt32(responsedata, 0).ToString();
+                            sheet.Cells[newRow, address[2]] = BitConverter.ToInt32(responsedata, 0).ToString();
                         }
  
                     }
-                    file.Close();
-                    workbook.Close(true, Type.Missing, Type.Missing);
-                    excel_app.Quit();
                 }
+                file.Close();
+                workbook.Close(true, Type.Missing, Type.Missing);
+                excel_app.Quit();
             }
             catch (Exception ex)
             {

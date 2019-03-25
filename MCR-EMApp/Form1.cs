@@ -24,13 +24,24 @@ namespace MCR_EMApp
         {
             try
             {
+
                 FetchData fd = new FetchData(".//Settings.json", serialPort1);
                 fd.GetDataFromMeters(this);
+                lblMeterNo.Text = "Data collection completed.";
+                lblTag.Text = "";
+                lblValue.Text = "";
+
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "Error");
             }
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+
         }
     }
 }
