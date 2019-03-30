@@ -1,0 +1,49 @@
+﻿[
+  {
+    "SerialPort": {
+      "PortName": "COM1",
+      "BaudRate": 9600,
+      "Parity": 0, //0-None,1-Odd,2-even
+      "ScanTime": 500 //milli seconds
+    },
+    "MeterTypes": 3, //No of different meter types
+    "MeterDetails": {
+      "1": {
+        "MemoryMap": {
+          "MW": [ 36, 2, 9],
+          "MVAR": [ 38, 2, 10 ],
+          "KWH": [ 514, 2, 11]
+        },
+        "Model": "Er300P",
+        "SlaveIdStart": 1,
+        "SlaveIdEnd": 12
+      },
+      "2": {
+        "MemoryMap": {
+          "MW": [ 36, 2, 9 ],
+          "MVAR": [ 38, 2, 10 ],
+          "KWH": [ 522, 2, 11 ]
+
+        },
+        "Model": "Er300P-Energy Consumption",
+        "SlaveIdStart": 13,
+        "SlaveIdEnd": 22
+      },
+      "3": {
+        "MemoryMap": {
+          "MW": [ 36, 2, 9 ],
+          "MVAR": [ 38, 2, 10 ],
+          "KWH": [ 514, 2, 11 ]
+
+
+        },
+        "Model": "AAA",
+        "SlaveIdStart": 23,
+        "SlaveIdEnd": 26
+      }
+    },
+    "Tags": [ "VR", "VY", "VB", "IR", "IY", "IB", "MW", "MVAR","KWH" ]
+  }
+
+  
+]

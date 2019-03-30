@@ -63,6 +63,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_6C8692FAA2C540C19396302B1CACA34A"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_82521C5EB5D041EFB4440F78296B771E"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -105,14 +111,32 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_FBEC1F6767C442608D0FC0C944EB4C36"
+        "MsmKey" = "8:_ECD72B9ADFD84FA7BF210A9C4DF19C13"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_196BF0A643E920CA3FDCA2DD3F07251F"
+        "OwnerKey" = "8:_4C1CDE83EDFA9584019F67B8BB2DD071"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_D3351B2E311F14D3BB2D7EE4D6279B3E"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_B9E71B8D82D14E33637CB5B0D1C5A519"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_63421DD7532F449BDA4D346BF47C0141"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -154,25 +178,7 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_63421DD7532F449BDA4D346BF47C0141"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_B9E71B8D82D14E33637CB5B0D1C5A519"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_D3351B2E311F14D3BB2D7EE4D6279B3E"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_4C1CDE83EDFA9584019F67B8BB2DD071"
+        "OwnerKey" = "8:_196BF0A643E920CA3FDCA2DD3F07251F"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -193,6 +199,14 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:TRUE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+            }
         }
         "Release"
         {
@@ -209,6 +223,14 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:TRUE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+            }
         }
     }
     "Deployable"
@@ -455,6 +477,26 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_6C8692FAA2C540C19396302B1CACA34A"
+            {
+            "SourcePath" = "8:..\\MCR-EMApp\\Alldata_Settings.json"
+            "TargetName" = "8:Alldata_Settings.json"
+            "Tag" = "8:"
+            "Folder" = "8:_97876F3EA2A34F378C2E697E9370150A"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:TRUE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_B060F22AA9804F908706A894714F4E91"
             {
             "SourcePath" = "8:..\\MCR-EMApp\\bin\\Debug\\Template.xlsx"
@@ -568,10 +610,10 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_FBEC1F6767C442608D0FC0C944EB4C36"
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_ECD72B9ADFD84FA7BF210A9C4DF19C13"
             {
-            "SourcePath" = "8:..\\MCR-EMApp\\bin\\Debug\\Settings.json"
-            "TargetName" = "8:Settings.json"
+            "SourcePath" = "8:..\\MCR-EMApp\\Energy_Settings.json"
+            "TargetName" = "8:Energy_Settings.json"
             "Tag" = "8:"
             "Folder" = "8:_97876F3EA2A34F378C2E697E9370150A"
             "Condition" = "8:"
@@ -580,7 +622,7 @@
             "ReadOnly" = "11:FALSE"
             "Hidden" = "11:FALSE"
             "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
+            "Permanent" = "11:TRUE"
             "SharedLegacy" = "11:FALSE"
             "PackageAs" = "3:1"
             "Register" = "3:1"
@@ -653,12 +695,12 @@
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
         "ProductVersion" = "8:1.0.0"
-        "Manufacturer" = "8:HP Inc."
+        "Manufacturer" = "8:Dr.NTTPS"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
         "Title" = "8:EM_Reader"
         "Subject" = "8:"
-        "ARPCONTACT" = "8:HP Inc."
+        "ARPCONTACT" = "8:Dr.NTTPS IT DIVISION"
         "Keywords" = "8:"
         "ARPCOMMENTS" = "8:"
         "ARPURLINFOABOUT" = "8:"

@@ -22,14 +22,14 @@ namespace MCR_EMApp
         private List<ushort[]> _memAddress;
         private SerialPort _comport;
         private List<string> _tags;
-        public FetchData(string pathToConfiguration, SerialPort comport)
+        private bool _isEnergy = false;
+        public FetchData(string pathToConfiguration, SerialPort comport,bool isEnergy)
         {
             _jsonData = File.ReadAllText(pathToConfiguration);
             _jarrayReader = JArray.Parse(_jsonData);
             _jObject = JObject.Parse(_jarrayReader[0].ToString());
             _comport = comport;
-            _context = new AppDBContext();
-
+            _isEnergy = isEnergy;
         }
         //Getdata data from settings.json file
         private void loadSerialPortDetails()
@@ -107,6 +107,22 @@ namespace MCR_EMApp
                 string newfile = System.IO.Directory.GetCurrentDirectory()+"\\Template.xlsx";
                 //File.Copy(".//Template.xlsx", newfile);
                 Excel.Workbook workbook = excel_app.Workbooks.Open(newfile, Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing, Type.Missing, Type.Missing,       Type.Missing, Type.Missing, Type.Missing, Type.Missing,Type.Missing, Type.Missing);
+                string sheet_name = "";
+                if (_isEnergy)
+                    sheet_name = "Energy";
+                else
+                    sheet_name = "All_data";
+                Excel.Worksheet sheet = FindSheet(workbook, sheet_name);
+                if (sheet == null)
+                {
+                    // Add the worksheet at the end.
+                    throw FileNotFoundException();
+                }
+                if (_isEnergy)
+                {
+                    sheet.Cells[5, 1] = DateTime.Now.ToString("dd-MMM-yyyy");
+                    sheet.Cells[5, 2] = DateTime.Now.ToString("HH:mm");
+                }
                 //Get Meter Details from different type of meters
                 for (int i = 1; i <= _meterTypes; i++)
                 {
@@ -121,17 +137,6 @@ namespace MCR_EMApp
                     for (int j = _start; j <= _end; j++)
                     {
                         //Load sheet
-                        string sheet_name = j.ToString();
-                        Excel.Worksheet sheet = FindSheet(workbook, sheet_name);
-                        if (sheet == null)
-                        {
-                            // Add the worksheet at the end.
-                            sheet = (Excel.Worksheet)workbook.Sheets.Add(
-                                Type.Missing, workbook.Sheets[workbook.Sheets.Count],
-                                1, Excel.XlSheetType.xlWorksheet);
-                            sheet.Name = "Sheet1";
-                        }
-
                         //Update UI regarding meter      
                         frm.lblMeterNo.Text = "Currently reading meter no "+j.ToString();
                         //Load meter Ratios
@@ -140,11 +145,6 @@ namespace MCR_EMApp
                         file.WriteLine("Meter ID: " + j.ToString());
                         file.WriteLine(System.Environment.NewLine);
                         int m = 0;
-                        Excel.Range xlRange = (Excel.Range)sheet.Cells[sheet.Rows.Count, 1];
-                        long lastRow = (long)xlRange.get_End(Excel.XlDirection.xlUp).Row;
-                        long newRow = lastRow + 1;
-                        sheet.Cells[newRow, 1] = DateTime.Now.ToString("dd-MMM-yyyy");
-                        sheet.Cells[newRow, 2] = DateTime.Now.ToString("HH:mm");
                         foreach (var address in _memAddress)
                         {
                             //Updating UI regarding Tag
@@ -189,7 +189,7 @@ namespace MCR_EMApp
                             _comport.Open();
                             _comport.DiscardInBuffer();                           
                             _comport.Write(requestwithcrc,0,requestwithcrc.Length);
-                            Thread.Sleep(500);
+                            Thread.Sleep(1000);
                             if (_comport.BytesToRead == response.Length)
                             {
                                 _comport.Read(response, 0, response.Length);
@@ -214,13 +214,16 @@ namespace MCR_EMApp
                             Array.Copy(response, 3, responsedata, 0, 4);
                             Array.Reverse(responsedata);
                             frm.lblValue.Text=_tags[m-1].ToString()+" : "+ BitConverter.ToInt32(responsedata, 0).ToString();
-                            sheet.Cells[newRow, address[2]] = BitConverter.ToInt32(responsedata, 0).ToString();
+                            if(_isEnergy)
+                                sheet.Cells[5, address[2]+j] = BitConverter.ToInt32(responsedata, 0).ToString();
+                            else
+                                sheet.Cells[j+4, address[2]] = BitConverter.ToInt32(responsedata, 0).ToString();
                         }
  
                     }
                 }
                 file.Close();
-                workbook.Close(true, Type.Missing, Type.Missing);
+                workbook.Close(true, newfile, Type.Missing);
                 excel_app.Quit();
             }
             catch (Exception ex)
@@ -228,6 +231,11 @@ namespace MCR_EMApp
                 throw ex;
             }
 
+        }
+
+        private Exception FileNotFoundException()
+        {
+            throw new NotImplementedException("Template dont have Energy or Alldata named worksheet.");
         }
 
         private Byte[] convert2int8(BitArray bitArray, int v)

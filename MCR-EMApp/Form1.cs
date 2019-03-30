@@ -25,8 +25,16 @@ namespace MCR_EMApp
             try
             {
 
-                FetchData fd = new FetchData(".//Settings.json", serialPort1);
-                fd.GetDataFromMeters(this);
+                if (rbData.Checked)
+                {
+                    FetchData fd = new FetchData(".//Alldata_Settings.json", serialPort1,false);
+                    fd.GetDataFromMeters(this);
+                }
+                else
+                {
+                    FetchData fd = new FetchData(".//Energy_Settings.json", serialPort1,true);
+                    fd.GetDataFromMeters(this);
+                }
                 lblMeterNo.Text = "Data collection completed.";
                 lblTag.Text = "";
                 lblValue.Text = "";
